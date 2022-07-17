@@ -6,7 +6,7 @@ from nonebot.adapters.kaiheila import Message, Bot
 from nonebot.adapters.kaiheila.event import ChannelMessageEvent, PrivateMessageEvent, Event
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.postman import PostDestination as BasePostDestination, \
-    PostDestinationFactory as BasePostDestinationFactory
+    PostDestinationFactory as BasePostDestinationFactory, PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
@@ -63,8 +63,12 @@ class ChannelPostDestination(PostDestination):
         await bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)
 
 
-@context.register_singleton()
+@context.require(PostDestinationFactoryManager).register
 class PostDestinationFactory(BasePostDestinationFactory[str, str]):
+    @classmethod
+    def adapter(cls) -> str:
+        return "kaiheila"
+
     def build(self, user_id: Optional[str], group_id: Optional[str]) -> PostDestination:
         if group_id is None:
             return PrivatePostDestination(user_id=user_id)
