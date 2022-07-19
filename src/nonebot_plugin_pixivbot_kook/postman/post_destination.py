@@ -1,22 +1,17 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from nonebot import get_bot
 from nonebot.adapters.kaiheila import Message, Bot
 from nonebot.adapters.kaiheila.event import ChannelMessageEvent, PrivateMessageEvent, Event
 from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination as BasePostDestination, \
     PostDestinationFactory as BasePostDestinationFactory, PostDestinationFactoryManager
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
 class PostDestination(BasePostDestination[str, str], ABC):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-
-    @property
-    def adapter(self) -> str:
-        return "kaiheila"
 
     @abstractmethod
     async def post(self, msg: Message):
@@ -24,7 +19,7 @@ class PostDestination(BasePostDestination[str, str], ABC):
 
 
 class PrivatePostDestination(PostDestination):
-    def __init__(self, bot: Bot, 
+    def __init__(self, bot: Bot,
                  *, user_id: str,
                  quote_message_id: Optional[str] = None):
         super().__init__(bot)
@@ -32,12 +27,9 @@ class PrivatePostDestination(PostDestination):
         self.quote_message_id = quote_message_id
 
     @property
-    def user_id(self) -> str:
-        return self._user_id
-
-    @property
-    def group_id(self) -> Optional[str]:
-        return None
+    def identifier(self):
+        # 小心递归陷阱
+        return PostIdentifier("kaiheila", self._user_id, None)
 
     def normalize(self) -> "PrivatePostDestination":
         return PrivatePostDestination(self.bot, user_id=self.user_id)
@@ -47,7 +39,7 @@ class PrivatePostDestination(PostDestination):
 
 
 class ChannelPostDestination(PostDestination):
-    def __init__(self, bot: Bot, 
+    def __init__(self, bot: Bot,
                  *, user_id: Optional[str] = None,
                  channel_id: str,
                  quote_message_id: Optional[str] = None):
@@ -57,15 +49,9 @@ class ChannelPostDestination(PostDestination):
         self.quote_message_id = quote_message_id
 
     @property
-    def user_id(self) -> Optional[str]:
-        return self._user_id
-
-    @property
-    def group_id(self) -> str:
-        """
-        其实是channel_id
-        """
-        return self.channel_id
+    def identifier(self):
+        # 小心递归陷阱
+        return PostIdentifier("kaiheila", self._user_id, self.channel_id)
 
     def normalize(self) -> "ChannelPostDestination":
         return ChannelPostDestination(self.bot, user_id=self.user_id, channel_id=self.channel_id)
