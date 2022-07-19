@@ -20,9 +20,7 @@ class Postman(BasePostman[int, int]):
         return "kaiheila"
 
     @staticmethod
-    async def make_illust_msg(model: IllustMessageModel) -> Optional[Message]:
-        bot: Bot = get_bot()
-
+    async def make_illust_msg(bot: Bot, model: IllustMessageModel) -> Optional[Message]:
         image_url = await bot.upload_file(("img.jpg", model.image, "image/jpeg"))
         block_msg = None
 
@@ -45,7 +43,7 @@ class Postman(BasePostman[int, int]):
 
     async def send_illust(self, model: IllustMessageModel,
                           *, post_dest: PostDestination):
-        message = await self.make_illust_msg(model)
+        message = await self.make_illust_msg(post_dest.bot, model)
         if message:
             await post_dest.post(message)
 

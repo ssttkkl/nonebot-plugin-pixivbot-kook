@@ -11,9 +11,12 @@ from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
 class PostDestination(BasePostDestination[str, str], ABC):
+    def __init__(self, bot: Bot) -> None:
+        self.bot = bot
+
     @property
     def adapter(self) -> str:
-        return get_adapter_name()
+        return "kaiheila"
 
     @abstractmethod
     async def post(self, msg: Message):
@@ -21,8 +24,10 @@ class PostDestination(BasePostDestination[str, str], ABC):
 
 
 class PrivatePostDestination(PostDestination):
-    def __init__(self, *, user_id: str,
+    def __init__(self, bot: Bot, 
+                 *, user_id: str,
                  quote_message_id: Optional[str] = None):
+        super().__init__(bot)
         self._user_id = user_id
         self.quote_message_id = quote_message_id
 
@@ -35,14 +40,15 @@ class PrivatePostDestination(PostDestination):
         return None
 
     async def post(self, message: Message):
-        bot: Bot = get_bot()
-        await bot.send_private_msg(user_id=self.user_id, message=message, quote=self.quote_message_id)
+        await self.bot.send_private_msg(user_id=self.user_id, message=message, quote=self.quote_message_id)
 
 
 class ChannelPostDestination(PostDestination):
-    def __init__(self, *, user_id: Optional[str] = None,
+    def __init__(self, bot: Bot, 
+                 *, user_id: Optional[str] = None,
                  channel_id: str,
                  quote_message_id: Optional[str] = None):
+        super().__init__(bot)
         self._user_id = user_id
         self.channel_id = channel_id
         self.quote_message_id = quote_message_id
@@ -59,8 +65,7 @@ class ChannelPostDestination(PostDestination):
         return self.channel_id
 
     async def post(self, message: Message):
-        bot: Bot = get_bot()
-        await bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)
+        await self.bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)
 
 
 @context.require(PostDestinationFactoryManager).register
@@ -69,19 +74,19 @@ class PostDestinationFactory(BasePostDestinationFactory[str, str]):
     def adapter(cls) -> str:
         return "kaiheila"
 
-    def build(self, user_id: Optional[str], group_id: Optional[str]) -> PostDestination:
+    def build(self, bot: Bot, user_id: Optional[str], group_id: Optional[str]) -> PostDestination:
         if group_id is None:
-            return PrivatePostDestination(user_id=user_id)
+            return PrivatePostDestination(bot, user_id=user_id)
         else:
-            return ChannelPostDestination(user_id=user_id, channel_id=group_id)
+            return ChannelPostDestination(bot, user_id=user_id, channel_id=group_id)
 
-    def from_event(self, event: Event) -> PostDestination:
+    def from_event(self, bot: Bot, event: Event) -> PostDestination:
         if isinstance(event, ChannelMessageEvent):
-            return ChannelPostDestination(user_id=event.author_id,
+            return ChannelPostDestination(bot, user_id=event.author_id,
                                           channel_id=event.target_id,
                                           quote_message_id=event.msg_id)
         elif isinstance(event, PrivateMessageEvent):
-            return PrivatePostDestination(user_id=event.author_id,
+            return PrivatePostDestination(bot, user_id=event.author_id,
                                           quote_message_id=event.msg_id)
         else:
             raise ValueError("invalid event type: " + str(type(event)))
