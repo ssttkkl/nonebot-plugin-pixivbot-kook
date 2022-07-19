@@ -39,6 +39,9 @@ class PrivatePostDestination(PostDestination):
     def group_id(self) -> Optional[str]:
         return None
 
+    def normalize(self) -> "PrivatePostDestination":
+        return PrivatePostDestination(self.bot, user_id=self.user_id)
+
     async def post(self, message: Message):
         await self.bot.send_private_msg(user_id=self.user_id, message=message, quote=self.quote_message_id)
 
@@ -63,6 +66,9 @@ class ChannelPostDestination(PostDestination):
         其实是channel_id
         """
         return self.channel_id
+
+    def normalize(self) -> "ChannelPostDestination":
+        return ChannelPostDestination(self.bot, user_id=self.user_id, channel_id=self.channel_id)
 
     async def post(self, message: Message):
         await self.bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)
