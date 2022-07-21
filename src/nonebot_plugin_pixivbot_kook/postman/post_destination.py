@@ -31,7 +31,7 @@ class PrivatePostDestination(PostDestination):
         # 小心递归陷阱
         return PostIdentifier("kaiheila", self._user_id, None)
 
-    def normalize(self) -> "PrivatePostDestination":
+    def normalized(self) -> "PrivatePostDestination":
         return PrivatePostDestination(self.bot, user_id=self.user_id)
 
     async def post(self, message: Message):
@@ -53,7 +53,7 @@ class ChannelPostDestination(PostDestination):
         # 小心递归陷阱
         return PostIdentifier("kaiheila", self._user_id, self.channel_id)
 
-    def normalize(self) -> "ChannelPostDestination":
+    def normalized(self) -> "ChannelPostDestination":
         return ChannelPostDestination(self.bot, user_id=self.user_id, channel_id=self.channel_id)
 
     async def post(self, message: Message):
